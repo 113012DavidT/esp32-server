@@ -6,6 +6,9 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.0",

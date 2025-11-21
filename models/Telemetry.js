@@ -11,20 +11,20 @@ const telemetrySchema = new mongoose.Schema(
       required: true,
     },
     timestamp: {
-      type: Date,
-      required: true,     // Fecha enviada por el ESP32
+      type: Date,          // Hora enviada por el ESP32
+      required: true,
     },
     horaRecepcion: {
-      type: Date,          // Fecha en que el servidor recibe el POST
+      type: Date,          // Hora en la que el servidor recibió el dato
       required: true,
     },
     horaGuardado: {
-      type: Date,          // Fecha exacta que se guarda en Mongo
+      type: Date,          // Hora exacta guardada en Mongo
       required: true,
     }
   },
   {
-    timestamps: true        // crea createdAt y updatedAt automáticamente
+    timestamps: true       // createdAt / updatedAt
   }
 );
 

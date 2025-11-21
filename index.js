@@ -9,9 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// -----------------------------------------------------
-// FUNCION PARA CONVERTIR FECHA UTC → HORA LOCAL MÉXICO
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
+// FUNCIÓN PARA CONVERTIR UTC → HORA LOCAL MÉXICO
+// -----------------------------------------------------------------------------
 function toMexicoTime(date) {
   return new Date(date).toLocaleString('es-MX', {
     timeZone: 'America/Mexico_City',
@@ -19,17 +19,17 @@ function toMexicoTime(date) {
   });
 }
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 // CONEXIÓN A MONGO
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB conectado correctamente'))
   .catch(err => console.error('❌ Error MongoDB:', err));
 
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 // POST: RECIBIR DATOS DEL ESP32
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 app.post('/api/telemetry', async (req, res) => {
   try {
     const { temp, hum, timestamp } = req.body;
@@ -43,20 +43,19 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Timestamp inválido' });
     }
 
-    // Hora en que el servidor recibe el dato
     const horaRecepcion = new Date();
 
     const nuevoDato = new Telemetry({
       temp,
       hum,
       timestamp: fechaESP,
-      horaRecepcion: horaRecepcion,
+      horaRecepcion,
       horaGuardado: new Date()
     });
 
     await nuevoDato.save();
 
-    console.log(`📩 Recibido → ${temp}°C | ${hum}% | ESP:${timestamp} | Servidor:${horaRecepcion}`);
+    console.log(`📩 Guardado: ${temp}°C | ${hum}% | ESP: ${timestamp} | Server: ${horaRecepcion}`);
 
     res.status(201).json({
       message: 'Dato guardado correctamente',
@@ -65,16 +64,14 @@ app.post('/api/telemetry', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error guardando dato:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
 
-
-// -----------------------------------------------------
-// GET: LISTAR DATOS EN HORA LOCAL DE MÉXICO
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
+// GET: LISTAR TODOS LOS DATOS (EN HORA LOCAL MX)
+// -----------------------------------------------------------------------------
 app.get('/api/telemetry', async (req, res) => {
   const datos = await Telemetry.find().sort({ timestamp: -1 });
 
@@ -94,18 +91,56 @@ app.get('/api/telemetry', async (req, res) => {
 });
 
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
+// GET: ÚLTIMO REGISTRO (UTC + MEX)
+// -----------------------------------------------------------------------------
+app.get('/api/telemetry/last', async (req, res) => {
+  try {
+    const last = await Telemetry.findOne().sort({ createdAt: -1 });
+
+    if (!last) {
+      return res.status(404).json({ message: "No hay registros" });
+    }
+
+    res.json({
+      id: last._id,
+      temp: last.temp,
+      hum: last.hum,
+
+      enviado_por_esp: {
+        utc: last.timestamp,
+        mexico_utc_6: toMexicoTime(last.timestamp)
+      },
+
+      recibido_por_backend: {
+        utc: last.horaRecepcion,
+        mexico_utc_6: toMexicoTime(last.horaRecepcion)
+      },
+
+      guardado_en_mongo: {
+        utc: last.horaGuardado,
+        mexico_utc_6: toMexicoTime(last.horaGuardado)
+      }
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// -----------------------------------------------------------------------------
 // GET: CONTADOR
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 app.get('/api/telemetry/count', async (req, res) => {
   const count = await Telemetry.countDocuments();
   res.json({ total_registros: count });
 });
 
 
-// -----------------------------------------------------
-// HOME EN HORA LOCAL
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
+// HOME
+// -----------------------------------------------------------------------------
 app.get('/', async (req, res) => {
   const count = await Telemetry.countDocuments();
   const ahoraMX = toMexicoTime(new Date());
@@ -120,9 +155,9 @@ app.get('/', async (req, res) => {
 });
 
 
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 // INICIAR SERVIDOR
-// -----------------------------------------------------
+// -----------------------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server iniciado en puerto ${PORT}`);

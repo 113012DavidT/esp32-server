@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -23,20 +23,25 @@ app.post('/api/telemetry', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos: temp, hum o timestamp' });
     }
 
-    const fecha = new Date(timestamp);
-    if (isNaN(fecha.getTime())) {
+    const fechaESP = new Date(timestamp);
+    if (isNaN(fechaESP.getTime())) {
       return res.status(400).json({ error: 'Timestamp inválido' });
     }
+
+    // --- NUEVO: hora en la que EL SERVIDOR recibe el dato
+    const horaRecepcion = new Date();
 
     const nuevoDato = new Telemetry({
       temp,
       hum,
-      timestamp: fecha
+      timestamp: fechaESP,        // 🕒 hora enviada por el ESP32
+      horaRecepcion,             // 🟢 nueva hora de recepción en el servidor
+      horaGuardado: new Date()   // 🔵 nueva hora real guardada en Mongo
     });
 
     await nuevoDato.save();
 
-    console.log(`Dato guardado correctamente → ${temp}°C | ${hum}% | ${timestamp}`);
+    console.log(`📩 Recibido → ${temp}°C | ${hum}% | ESP:${timestamp} | Servidor:${horaRecepcion}`);
 
     res.status(201).json({
       message: 'Dato guardado correctamente',

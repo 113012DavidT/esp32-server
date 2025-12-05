@@ -21,10 +21,14 @@ const telemetrySchema = new mongoose.Schema(
     horaGuardado: {
       type: Date,      // Hora exacta guardada en Mongo
       required: true,
+    },
+    intervaloSegundos: {
+      type: Number,    // Diferencia contra el último dato guardado
+      required: false,
     }
   },
   {
-    timestamps: true   // createdAt / updatedAt
+    timestamps: true   // createdAt / updatedAt automáticos
   }
 );
 
